@@ -1,7 +1,6 @@
 .env
-expertflow\__pycache__
+__pycache__/
+*.pyc
 .venv_test
 test_package_usage.py
-tests\__pycache__
 .vscode
-expertflow\__pycache__
