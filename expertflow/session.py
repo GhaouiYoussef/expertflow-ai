@@ -5,21 +5,13 @@ from typing import Dict, List, Any, Optional
 from .types import Agent, Message, TurnResponse
 from .router import Router
 from .memory import MemoryOptimizer
-try:
-    from google import genai
-    from google.genai import types
-except ImportError:
-    genai = None
-    types = None
+from .llm.base import BaseLLM
 
 class ConversationManager:
-    def __init__(self, router: Router, api_key: str, debug: bool = False):
+    def __init__(self, router: Router, llm: BaseLLM, debug: bool = False):
         self.router = router
-        self.api_key = api_key
+        self.llm = llm
         self.debug = debug
-        self._client = None
-        if api_key and genai:
-            self._client = genai.Client(api_key=api_key)
             
         # In-memory storage for demo purposes. 
         # In production, this should be replaced by a persistent store (Redis/Mongo).
@@ -37,7 +29,7 @@ class ConversationManager:
             }
         return self._sessions[user_id]
 
-    def _log_debug_memory(self, user_id: str, agent_name: str, genai_history: List[Any]):
+    def _log_debug_memory(self, user_id: str, agent_name: str, history: List[Message]):
         """
         Logs the memory context to a file for debugging purposes.
         """
@@ -48,20 +40,8 @@ class ConversationManager:
         filename = f"debug-cache/{user_id}_{timestamp}_{agent_name}.json"
         
         try:
-            # Convert GenAI objects to serializable dicts
-            serializable_history = []
-            for item in genai_history:
-                role = getattr(item, "role", "unknown")
-                parts = []
-                if hasattr(item, "parts"):
-                    for p in item.parts:
-                        if hasattr(p, "text"):
-                            parts.append({"text": p.text})
-                        elif hasattr(p, "function_call"):
-                            parts.append({"function_call": str(p.function_call)})
-                        else:
-                            parts.append(str(p))
-                serializable_history.append({"role": role, "parts": parts})
+            # Convert Message objects to serializable dicts
+            serializable_history = [msg.model_dump() for msg in history]
 
             with open(filename, "w", encoding="utf-8") as f:
                 json.dump(serializable_history, f, indent=2)
@@ -88,65 +68,35 @@ class ConversationManager:
         current_agent = self.router.get_agent(current_agent_name)
 
         # 2. Prepare Context for LLM
-        # Inject System Prompt
+        # We construct the messages list for the LLM
+        
         # Note: In a real chat session, we might not want to append system prompt to history list permanently
         # but send it as part of the request.
         
-        # Convert internal Message objects to GenAI Content objects
-        genai_history = []
-        
-        # Add System Prompt
-        genai_history.append(types.Content(
-            role="user", # Gemini often treats system instructions better if passed in config or as first user msg
-            parts=[types.Part(text=f"System Instruction: {current_agent.system_prompt}")]
-        ))
-        
-        # Add History
-        for msg in history:
-            role = "model" if msg.role == "assistant" else "user"
-            genai_history.append(types.Content(
-                role=role,
-                parts=[types.Part(text=msg.content)]
-            ))
-            
-        # Add Current User Message
-        genai_history.append(types.Content(
-            role="user",
-            parts=[types.Part(text=message)]
-        ))
-
         # 2.5 Debug Logging
-        self._log_debug_memory(user_id, current_agent_name, genai_history)
+        # We log the history before appending the new message for debugging state
+        self._log_debug_memory(user_id, current_agent_name, history)
 
         # 3. Generate Response
-        response_text = "Error: GenAI client not initialized."
+        response_text = "Error: LLM not initialized."
         token_usage = {"total": 0}
         
-        if self._client:
-            try:
-                # Configure tools if the agent has them
-                tool_config = None
-                if current_agent.tools:
-                    tool_config = types.GenerateContentConfig(
-                        tools=current_agent.tools,
-                        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False)
-                    )
+        try:
+            # Prepare messages for generation: History + New Message
+            # We don't modify the persistent history yet
+            messages_for_llm = history.copy()
+            messages_for_llm.append(Message(role="user", content=message))
+            
+            response_text = self.llm.generate(
+                messages=messages_for_llm,
+                system_prompt=current_agent.system_prompt,
+                tools=current_agent.tools
+            )
+            
+            token_usage = self.llm.get_token_usage()
 
-                chat = self._client.chats.create(
-                    model=current_agent.model_name,
-                    history=genai_history[:-1], # History excluding the new message
-                    config=tool_config
-                )
-                
-                resp = chat.send_message(message)
-                response_text = getattr(resp, "text", "") or ""
-                
-                # Track usage
-                if resp.usage_metadata:
-                    token_usage["total"] = resp.usage_metadata.total_token_count
-
-            except Exception as e:
-                response_text = f"I encountered an error: {str(e)}"
+        except Exception as e:
+            response_text = f"I encountered an error: {str(e)}"
 
         # 4. Update History
         # We append the user message and the assistant response to our internal history

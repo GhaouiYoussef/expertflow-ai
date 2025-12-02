@@ -5,7 +5,7 @@ import time
 # Ensure the library is in the path for this tutorial
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from expertflow import Agent, Router, ConversationManager
+from expertflow import Agent, Router, ConversationManager, GeminiLLM
 
 def print_step(title, description):
     print(f"\n{'-'*50}")
@@ -65,10 +65,13 @@ def main():
                "The Router takes our list of agents and decides which one should handle a user message.\n"
                "It uses a fast LLM model to classify intent based on the agent descriptions.")
 
+    # Initialize the LLM
+    llm = GeminiLLM(api_key=api_key)
+
     router = Router(
         agents=[python_tutor, math_wizard, orchestrator],
         default_agent=orchestrator,
-        api_key=api_key
+        llm=llm
     )
     print("✅ Router initialized.")
 
@@ -77,7 +80,7 @@ def main():
                "The Manager handles the chat loop, maintains history, and executes the agent switches.\n"
                "We are enabling 'debug=True' to see the internal memory logs in the 'debug-cache/' folder.")
 
-    manager = ConversationManager(router=router, api_key=api_key, debug=True)
+    manager = ConversationManager(router=router, llm=llm, debug=True)
     print("✅ ConversationManager initialized with debug=True.")
 
     # 4. Interactive Loop
