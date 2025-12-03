@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "expertflow-ai"
+version = "0.1.0"
+description = "A lightweight library for multi-persona AI agent routing and state management."
+authors = [
+  { name="GhaouiYoussef", email="youssefghaoui.pro@gmail.com" },
+]
+readme = "README.md"
+requires-python = ">=3.11.4"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "google-genai>=0.3.0", 
+    "pydantic>=2.0.0"
+]
+
+[project.scripts]
+expertflow = "expertflow.cli:main"
+
+[project.urls]
+"Homepage" = "https://github.com/GhaouiYoussef/expertflow-ai"
+
+[tool.setuptools.packages.find]
+include = ["expertflow*"]
+exclude = ["test_init_project*", "tests*"]
+
+[tool.setuptools.package-data]
+"expertflow" = ["prompts/**/*"]
