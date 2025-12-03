@@ -32,51 +32,31 @@ class TestAgents(unittest.TestCase):
         self.assertEqual(agent.system_prompt, "prompt")
         self.assertEqual(agent.model_name, "gemini-2.0-flash") # Default
 
-    @patch("expertflow.router.genai")
-    def test_router_classification(self, mock_genai):
-        # Setup mock
-        mock_client = MagicMock()
-        mock_genai.Client.return_value = mock_client
-        
-        # Mock response for classification
-        mock_response = MagicMock()
-        mock_response.text = "python_expert"
-        mock_client.models.generate_content.return_value = mock_response
+    def test_router_classification(self):
+        # Setup mock LLM
+        mock_llm = MagicMock()
+        mock_llm.generate.return_value = "python_expert"
 
-        router = Router(agents=self.agents, default_agent=self.agent1, api_key="dummy")
+        router = Router(agents=self.agents, default_agent=self.agent1, llm=mock_llm)
         
         # Test classification
         result = router.classify("Help me with python code", "math_expert")
         
         self.assertEqual(result, "python_expert")
-        mock_client.models.generate_content.assert_called_once()
+        mock_llm.generate.assert_called_once()
 
-    @patch("expertflow.session.genai")
-    @patch("expertflow.router.genai")
-    def test_conversation_flow(self, mock_router_genai, mock_session_genai):
-        # Setup mocks
-        mock_router_client = MagicMock()
-        mock_router_genai.Client.return_value = mock_router_client
+    def test_conversation_flow(self):
+        # Setup mock LLM
+        mock_llm = MagicMock()
         
-        mock_session_client = MagicMock()
-        mock_session_genai.Client.return_value = mock_session_client
-        
-        # Mock Router classification to switch agent
-        mock_router_response = MagicMock()
-        mock_router_response.text = "python_expert"
-        mock_router_client.models.generate_content.return_value = mock_router_response
-
-        # Mock Session chat response
-        mock_chat = MagicMock()
-        mock_chat_response = MagicMock()
-        mock_chat_response.text = "Here is some python code."
-        mock_chat_response.usage_metadata.total_token_count = 10
-        mock_chat.send_message.return_value = mock_chat_response
-        mock_session_client.chats.create.return_value = mock_chat
+        # 1. Router call: returns "python_expert"
+        # 2. Manager call: returns "Here is some python code."
+        mock_llm.generate.side_effect = ["python_expert", "Here is some python code."]
+        mock_llm.get_token_usage.return_value = {"total": 10}
 
         # Initialize
-        router = Router(agents=self.agents, default_agent=self.agent1, api_key="dummy")
-        manager = ConversationManager(router=router, api_key="dummy")
+        router = Router(agents=self.agents, default_agent=self.agent1, llm=mock_llm)
+        manager = ConversationManager(router=router, llm=mock_llm)
 
         # Test process_turn
         response = manager.process_turn("user1", "Write a python script")
@@ -92,31 +72,18 @@ class TestAgents(unittest.TestCase):
         self.assertEqual(session_data["history"][0].content, "Write a python script")
         self.assertEqual(session_data["history"][1].content, "Here is some python code.")
 
-    @patch("expertflow.session.genai")
-    @patch("expertflow.router.genai")
-    def test_no_switch_flow(self, mock_router_genai, mock_session_genai):
-        # Setup mocks
-        mock_router_client = MagicMock()
-        mock_router_genai.Client.return_value = mock_router_client
+    def test_no_switch_flow(self):
+        # Setup mock LLM
+        mock_llm = MagicMock()
         
-        mock_session_client = MagicMock()
-        mock_session_genai.Client.return_value = mock_session_client
-        
-        # Mock Router classification to STAY on same agent
-        mock_router_response = MagicMock()
-        mock_router_response.text = "math_expert" # Same as default
-        mock_router_client.models.generate_content.return_value = mock_router_response
-
-        # Mock Session chat response
-        mock_chat = MagicMock()
-        mock_chat_response = MagicMock()
-        mock_chat_response.text = "2 + 2 is 4."
-        mock_chat.send_message.return_value = mock_chat_response
-        mock_session_client.chats.create.return_value = mock_chat
+        # 1. Router call: returns "math_expert" (same as default)
+        # 2. Manager call: returns "2 + 2 is 4."
+        mock_llm.generate.side_effect = ["math_expert", "2 + 2 is 4."]
+        mock_llm.get_token_usage.return_value = {"total": 10}
 
         # Initialize
-        router = Router(agents=self.agents, default_agent=self.agent1, api_key="dummy")
-        manager = ConversationManager(router=router, api_key="dummy")
+        router = Router(agents=self.agents, default_agent=self.agent1, llm=mock_llm)
+        manager = ConversationManager(router=router, llm=mock_llm)
 
         # Test process_turn
         response = manager.process_turn("user1", "What is 2+2?")

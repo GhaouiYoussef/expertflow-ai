@@ -1,13 +1,11 @@
 from typing import List, Optional
-from .types import Agent
-try:
-    from google import genai
-except ImportError:
-    genai = None
+from .types import Agent, Message
+from .llm.base import BaseLLM
 
 class Router:
-    def __init__(self, agents: List[Agent], default_agent: Optional[Agent] = None, api_key: str = None):
+    def __init__(self, agents: List[Agent], llm: BaseLLM, default_agent: Optional[Agent] = None):
         self.agents = {a.name: a for a in agents}
+        self.llm = llm
         
         # 1. Orchestrator Default Mitigation
         # If no default agent is provided, we create a generic "Orchestrator"
@@ -27,19 +25,10 @@ class Router:
             if default_agent.name not in self.agents:
                 self.agents[default_agent.name] = default_agent
 
-        self.api_key = api_key
-        self._client = None
-        
-        if api_key and genai:
-            self._client = genai.Client(api_key=api_key)
-
     def classify(self, user_message: str, current_agent_name: str, recent_history: List[str] = None) -> str:
         """
         Determines the best agent to handle the user message.
         """
-        if not self._client:
-            return current_agent_name
-
         # Construct the classification prompt
         agents_desc = "\n".join([f"- '{name}': {agent.description}" for name, agent in self.agents.items()])
         
@@ -68,11 +57,11 @@ class Router:
         """
 
         try:
-            response = self._client.models.generate_content(
-                model="gemini-2.0-flash-lite", # Fast model for routing
-                contents=prompt
-            )
-            predicted_agent = (getattr(response, "text", None) or "").strip().lower()
+            # We wrap the prompt in a Message object
+            messages = [Message(role="user", content=prompt)]
+            
+            response_text = self.llm.generate(messages=messages)
+            predicted_agent = response_text.strip().lower()
             
             # Validate
             # We do a loose match or exact match

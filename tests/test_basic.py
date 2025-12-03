@@ -32,7 +32,12 @@ class TestAgentSwitch(unittest.TestCase):
     def test_router_initialization(self):
         a1 = Agent(name="a1", system_prompt="p1", description="d1")
         a2 = Agent(name="a2", system_prompt="p2", description="d2")
-        router = Router(agents=[a1, a2], default_agent=a1)
+        
+        # Mock LLM for router
+        from unittest.mock import MagicMock
+        mock_llm = MagicMock()
+        
+        router = Router(agents=[a1, a2], default_agent=a1, llm=mock_llm)
         
         self.assertEqual(router.get_agent("a1").name, "a1")
         self.assertEqual(router.get_agent("unknown").name, "a1") # Default
