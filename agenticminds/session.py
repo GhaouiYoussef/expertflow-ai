@@ -111,8 +111,8 @@ class Flow:
 
         # 4. Update History
         # We append the user message and the assistant response to our internal history
-        history.append(Message(role="user", content=message))
-        history.append(Message(role="assistant", content=response_text))
+        history.append(Message(role="user", content=message, metadata={"expert": current_expert_name}))
+        history.append(Message(role="assistant", content=response_text, metadata={"expert": current_expert_name}))
         
         # Prune if too long
         session["history"] = PNNet.prune(history)

@@ -1,12 +1,9 @@
 import os
 import sys
-
-# Add parent directory to path to import agenticminds from source if running from examples folder
-# sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 from agenticminds import Expert, Router, Flow
 from agenticminds.llm import GeminiLLM
 from agenticminds.utils import Colors
+
 # Import pre-defined prompts for quick start
 from agenticminds.prompts import QUICK_START_SALES, QUICK_START_SUPPORT, QUICK_START_ORCHESTRATOR
 
