@@ -77,7 +77,7 @@ graph TD
 ## Installation
 
 ```bash
-pip install aghenticMinds
+pip install aghentic_minds
 ```
 
 ## Quick Start (No API Key Required)
@@ -85,8 +85,8 @@ pip install aghenticMinds
 You can test the flow logic immediately using the `MockLLM`.
 
 ```python
-from aghenticMinds import Expert, Router, Flow
-from aghenticMinds.llm import MockLLM
+from aghentic_minds import Expert, Router, Flow
+from aghentic_minds.llm import MockLLM
 
 # 1. Setup Mock LLM with routing rules
 llm = MockLLM(
@@ -115,7 +115,7 @@ To use with a real LLM (e.g., Gemini), simply switch the adapter (check `simple_
 
 ```python
 import os
-from aghenticMinds.llm import GeminiLLM
+from aghentic_minds.llm import GeminiLLM
 
 llm = GeminiLLM(model_name="gemini-2.0-flash", api_key=os.getenv("GOOGLE_API_KEY"))
 # ... rest is the same

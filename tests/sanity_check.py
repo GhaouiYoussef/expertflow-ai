@@ -1,13 +1,13 @@
 import sys
 import os
 
-# Add parent directory to path to import aghenticMinds
+# Add parent directory to path to import aghentic_minds
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from aghenticMinds.session import Flow
-from aghenticMinds.router import Router
-from aghenticMinds.types import Expert
-from aghenticMinds.llm.mock import MockLLM
+from aghentic_minds.session import Flow
+from aghentic_minds.router import Router
+from aghentic_minds.types import Expert
+from aghentic_minds.llm.mock import MockLLM
 
 def run_sanity_check():
     print("Running Sanity Check...")

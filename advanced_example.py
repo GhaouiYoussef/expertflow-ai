@@ -1,11 +1,11 @@
 import os
 import sys
-from aghenticMinds import Expert, Router, Flow
-from aghenticMinds.llm import GeminiLLM
-from aghenticMinds.utils import Colors
+from aghentic_minds import Expert, Router, Flow
+from aghentic_minds.llm import GeminiLLM
+from aghentic_minds.utils import Colors
 
 # Import pre-defined prompts for quick start
-from aghenticMinds.prompts import QUICK_START_SALES, QUICK_START_SUPPORT, QUICK_START_ORCHESTRATOR
+from aghentic_minds.prompts import QUICK_START_SALES, QUICK_START_SUPPORT, QUICK_START_ORCHESTRATOR
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -54,7 +54,7 @@ def main():
     # 5. Create Flow
     flow = Flow(router=router, llm=llm, debug=True)
 
-    print(f"{Colors.HEADER}=== aghenticMinds Advanced Example ==={Colors.ENDC}")
+    print(f"{Colors.HEADER}=== aghentic_minds Advanced Example ==={Colors.ENDC}")
     print("Type 'exit' to quit.\n")
 
     # 6. Interactive Loop

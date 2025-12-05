@@ -1,6 +1,6 @@
 import os
-from aghenticMinds import Expert, Router, Flow
-from aghenticMinds.llm import GeminiLLM
+from aghentic_minds import Expert, Router, Flow
+from aghentic_minds.llm import GeminiLLM
 
 # 1. Setup LLM
 # Ensure GOOGLE_API_KEY is set in your environment
